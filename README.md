@@ -1,6 +1,6 @@
 # Autoresearch — Claude Code Plugin
 
-93% of experiments fail. The value is in the 41 dead ends you eliminated, not the 3 improvements you found.
+93% of experiments fail. The value is in the 41 dead ends you eliminated, not only the 3 improvements you found.
 
 This is a Claude Code plugin for running autonomous experiment loops on any codebase with a measurable metric. **The pattern:** one file, one metric, one loop. An agent edits a constrained file, runs an eval, keeps improvements, reverts failures, and repeats — unattended.
 
