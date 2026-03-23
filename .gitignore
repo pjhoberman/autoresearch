@@ -1,0 +1,26 @@
+# Autoresearch artifacts
+autoresearch_log*.md
+.autoresearch_cache.json
+autoresearch_cache*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Conductor
+.context/
