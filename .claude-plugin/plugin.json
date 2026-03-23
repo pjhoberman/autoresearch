@@ -1,6 +1,6 @@
 {
   "name": "autoresearch",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Autonomous experiment loops on any codebase — one file, one metric, one loop. Based on Karpathy's autoresearch pattern.",
   "author": {
     "name": "PJ Hoberman"

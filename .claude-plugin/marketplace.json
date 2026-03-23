@@ -8,7 +8,13 @@
       "name": "autoresearch",
       "source": "./",
       "description": "Autonomous experiment loops on any codebase — one file, one metric, one loop.",
-      "version": "1.1.0"
+      "version": "1.2.0"
+    },
+    {
+      "name": "autoresearch-discover",
+      "source": "./",
+      "description": "Scan a codebase to find where autoresearch experiments would be most valuable.",
+      "version": "1.0.0"
     }
   ]
 }
