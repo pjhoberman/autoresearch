@@ -1,6 +1,7 @@
 ---
 name: autoresearch
 description: "Set up and run Karpathy-style autoresearch experiments on any codebase with a measurable metric. Use this skill whenever the user wants to autonomously optimize code by running iterative experiments — tuning search ranking, scoring functions, prompt templates, weight parameters, algorithm configurations, or any logic where changes can be evaluated against a numerical metric. Also trigger when the user mentions 'autoresearch', 'overnight optimization', 'autonomous experiments', 'autoresearch loop', 'Karpathy loop', or wants to 'let Claude Code optimize this while I sleep'. This skill generates the full experiment harness: instructions.md, eval script, test data template, and launch prompt — scoped to their specific codebase."
+args: "path/to/constrained_file — the ONE file the agent will be allowed to edit during the experiment loop"
 ---
 
 # Autoresearch Skill
@@ -26,15 +27,18 @@ Based on Karpathy's autoresearch pattern, generalized beyond ML training to any 
 
 ## Process
 
-### Phase 1: Analyze the codebase
+### Phase 1: Analyze the constrained file
 
-Before generating any files, understand what you're working with:
+The user invokes this skill with the path to the constrained file: `/autoresearch path/to/file.py`
 
-1. **Read the target code.** Identify:
+If the user invokes `/autoresearch` without a file path, ask them which file they want the agent to optimize. Don't proceed until you have it — the whole pattern depends on this choice.
+
+Once you have the file path:
+
+1. **Read the constrained file immediately.** Identify:
    - What does the function/system do?
    - What are the tunable levers? (weights, thresholds, formulas, parameters, prompt text)
-   - What's the constrained file — the ONE file the agent should edit?
-   - What should be frozen? (APIs, data sources, schema, other modules)
+   - What should be frozen? (everything else — APIs, data sources, schema, other modules)
 
 2. **Identify the metric.** Ask the user:
    - What does "better" mean? (accuracy, precision, recall, speed, score, pass rate)
