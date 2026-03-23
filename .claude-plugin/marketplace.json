@@ -1,0 +1,14 @@
+{
+  "name": "autoresearch-marketplace",
+  "owner": {
+    "name": "PJ Hoberman"
+  },
+  "plugins": [
+    {
+      "name": "autoresearch",
+      "source": "./",
+      "description": "Autonomous experiment loops on any codebase — one file, one metric, one loop.",
+      "version": "1.1.0"
+    }
+  ]
+}

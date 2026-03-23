@@ -1,6 +1,6 @@
-# Autoresearch — Claude Code Skill
+# Autoresearch — Claude Code Plugin
 
-A Claude Code skill for running Karpathy-style autonomous experiment loops on any codebase with a measurable metric.
+A Claude Code plugin for running Karpathy-style autonomous experiment loops on any codebase with a measurable metric.
 
 **The pattern:** one file, one metric, one loop. An agent edits a constrained file, runs an eval, keeps improvements, reverts failures, and repeats — unattended.
 
@@ -31,20 +31,39 @@ When you invoke `/autoresearch path/to/file.py` in Claude Code, the skill:
 
 ## Installation
 
-Copy `SKILL.md` into your Claude Code skills directory, or add it to your project's `.claude/skills/` folder.
+### As a plugin (recommended)
 
-The skill reads the templates in `templates/` at runtime, so keep them alongside `SKILL.md`.
+```
+/plugin marketplace add pjhoberman/autoresearch
+/plugin install autoresearch@autoresearch-marketplace
+```
+
+After installation, invoke with `/autoresearch:autoresearch path/to/file.py`.
+
+### Manual
+
+Copy the `skills/autoresearch/` directory into your project's `.claude/skills/` folder. This gives you `/autoresearch` directly.
+
+### Local development
+
+```bash
+claude --plugin-dir /path/to/this/repo
+```
 
 ## Repository structure
 
 ```
-SKILL.md                        # Skill definition — Claude Code reads this
-templates/
-  instructions_template.md      # Template for the agent's instructions.md
-  eval_template.py              # Template for the eval script
-  launch_prompt.md              # Template for the Claude Code launch prompt
-references/
-  lessons.md                    # Real-world findings from two production autoresearch runs
+.claude-plugin/
+  plugin.json                   # Plugin manifest
+  marketplace.json              # Marketplace catalog for distribution
+skills/autoresearch/
+  SKILL.md                      # Skill definition — Claude Code reads this
+  templates/
+    instructions_template.md    # Template for the agent's instructions.md
+    eval_template.py            # Template for the eval script
+    launch_prompt.md            # Template for the Claude Code launch prompt
+  references/
+    lessons.md                  # Real-world findings from two production autoresearch runs
 ```
 
 ## Quick start
@@ -54,6 +73,8 @@ In Claude Code, with your codebase open:
 ```
 /autoresearch path/to/scoring.py
 ```
+
+(Or `/autoresearch:autoresearch path/to/scoring.py` if installed as a plugin.)
 
 Pass the path to the **one file** the agent will be allowed to edit — the constrained file. The skill reads it immediately, identifies tunable levers, then asks about your metric and test data before generating the experiment harness.
 
@@ -105,3 +126,9 @@ Read this before designing your first experiment — it will save iterations.
 **The failures are the output.** 93% of experiments fail. The value is as much in the definitively eliminated dead ends as in the improvements found. The "what didn't work" section of the final log is often more useful than the score improvement.
 
 **30 iterations is the default.** Most gains come in iterations 10-20. If the score plateaus for 5+ consecutive iterations, the ceiling is architectural, not parametric.
+
+**Guard what matters.** Optional guard metrics prevent the agent from improving one metric at the expense of another. Optimize precision while guarding MRR. Optimize speed while guarding accuracy.
+
+**Survive compaction.** The JSONL state file lets the agent recover after context window compaction — critical for 30+ iteration overnight runs.
+
+**Noise-aware.** Baseline stability checks and min-delta thresholds prevent the agent from chasing variance instead of signal.
