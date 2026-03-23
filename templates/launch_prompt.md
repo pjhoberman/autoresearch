@@ -6,7 +6,7 @@
 Read instructions[TODO: _N].md to understand the autoresearch experiment setup.
 
 1. Read [TODO: path/to/constrained/file] to understand the current logic.
-[TODO: Optional — 2. Read [other file] to understand how the constrained file's output is used.]
+[TODO: Optional — 1b. Read [other file] to understand how the constrained file's output is used.]
 2. Run `[TODO: eval command] --verbose` to establish the baseline score.
 3. Record the baseline in instructions[TODO: _N].md and autoresearch_log[TODO: _N].md.
 4. Start the autoresearch loop: form a hypothesis, edit only [TODO: constrained file], run eval, keep improvements (commit with score delta), revert failures. Log every iteration to autoresearch_log[TODO: _N].md.
