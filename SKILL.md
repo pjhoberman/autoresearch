@@ -125,6 +125,8 @@ Before handing off to Claude Code:
 4. **Review test data** with the user — bad labels will send the agent in wrong directions
 5. **Estimate iteration time** — multiply by 30 to set expectations for total runtime
 
+6. **Stop and ask the user to review the generated files.** Present a summary of what was generated (instructions.md, eval script, test data, launch prompt) and ask the user to review them before proceeding. Do not kick off the autonomous loop or hand off the launch prompt until the user confirms they're happy with the setup. This is the last chance to catch bad metric definitions, missing frozen files, wrong strategy guidance, or test data issues before the agent burns 30 iterations on a flawed harness.
+
 ### Phase 4: Multi-round experiments
 
 After Round 1 completes, read the log. The "what didn't work" and "recommended next steps" sections tell you what Round 2 should target.
