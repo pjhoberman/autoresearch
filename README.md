@@ -8,9 +8,9 @@ Based on [Andrej Karpathy's autoresearch concept](https://karpathy.ai/), general
 
 ## What it does
 
-When you invoke `/autoresearch` in Claude Code, the skill:
+When you invoke `/autoresearch path/to/file.py` in Claude Code, the skill:
 
-1. Analyzes your codebase to identify tunable levers and a measurable metric
+1. Reads the constrained file to identify tunable levers, then asks about your metric
 2. Generates a complete experiment harness: `instructions.md`, eval script, test data template, and launch prompt
 3. (Optional) Runs validation to confirm the eval produces a stable score
 4. Hands off to an autonomous Claude Code agent to run N iterations overnight
@@ -52,10 +52,10 @@ references/
 In Claude Code, with your codebase open:
 
 ```
-/autoresearch
+/autoresearch path/to/scoring.py
 ```
 
-The skill will ask about your target function, metric, and test data, then generate the experiment harness tailored to your codebase.
+Pass the path to the **one file** the agent will be allowed to edit — the constrained file. The skill reads it immediately, identifies tunable levers, then asks about your metric and test data before generating the experiment harness.
 
 Once generated, paste the contents of `launch_prompt.md` into a new Claude Code session to start the autonomous loop.
 
