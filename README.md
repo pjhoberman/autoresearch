@@ -1,10 +1,10 @@
 # Autoresearch — Claude Code Plugin
 
-A Claude Code plugin for running Karpathy-style autonomous experiment loops on any codebase with a measurable metric.
+93% of experiments fail. The value is in the 41 dead ends you eliminated, not the 3 improvements you found.
 
-**The pattern:** one file, one metric, one loop. An agent edits a constrained file, runs an eval, keeps improvements, reverts failures, and repeats — unattended.
+This is a Claude Code plugin for running autonomous experiment loops on any codebase with a measurable metric. **The pattern:** one file, one metric, one loop. An agent edits a constrained file, runs an eval, keeps improvements, reverts failures, and repeats — unattended.
 
-Based on [Andrej Karpathy's autoresearch concept](https://karpathy.ai/), generalized beyond ML training to any code with a measurable outcome.
+Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch), generalized beyond ML training to any code with a measurable outcome.
 
 ## Skills
 
@@ -122,7 +122,7 @@ Short prompt to paste into Claude Code. Points the agent at `instructions.md`, e
 
 ## Lessons learned
 
-`references/lessons.md` documents findings from two rounds of autoresearch on a production hybrid search system (Django/pgvector/Cohere/Claude). Covers:
+`references/lessons.md` documents findings from 60 iterations across two rounds on a production hybrid search system (Django/pgvector/Cohere/Claude Haiku). This is what separates this plugin from other autoresearch tools — real production data, not theory. Covers:
 
 - What worked and what didn't (with specific numbers)
 - The Redis caching trap that invalidated an entire round
@@ -130,7 +130,7 @@ Short prompt to paste into Claude Code. Points the agent at `instructions.md`, e
 - The co-optimization ceiling in sequential rounds
 - When to stop (diminishing returns arrive fast)
 
-Read this before designing your first experiment — it will save iterations.
+Read this before designing your first experiment — it will save you an entire wasted round.
 
 ## Key design principles
 
@@ -147,3 +147,11 @@ Read this before designing your first experiment — it will save iterations.
 **Survive compaction.** The JSONL state file lets the agent recover after context window compaction — critical for 30+ iteration overnight runs.
 
 **Noise-aware.** Baseline stability checks and min-delta thresholds prevent the agent from chasing variance instead of signal.
+
+## Prior art
+
+- [karpathy/autoresearch](https://github.com/karpathy/autoresearch) — The original. 630-line script, single GPU, ML training optimization. 42K+ stars.
+- [SkyPilot: Scaling Autoresearch](https://blog.skypilot.co/scaling-autoresearch/) — 16 GPUs, 910 experiments in 8 hours. Showed that parallelism changes what the agent can discover.
+- [Tobi Lütke / Shopify](https://x.com/tobi) — First non-ML application. 53% faster Liquid template rendering from ~120 automated experiments.
+- [uditgoenka/autoresearch](https://github.com/uditgoenka/autoresearch) — Domain-agnostic Claude skill with subcommands.
+- [pi-autoresearch](https://github.com/davebcn87/pi-autoresearch) — Autoresearch extension for the Pi editor.
