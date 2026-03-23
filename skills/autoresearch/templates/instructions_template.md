@@ -38,15 +38,36 @@ Specifically, these are the tunable levers:
 - Do NOT add external API calls or new dependencies
 - Do NOT change how [TODO: main function] is called (signature and return type must stay the same)
 
+### Guard metric (if applicable)
+[TODO: Delete this section if no guard metric, or fill in:]
+- **Guard metric:** [TODO: metric name, e.g. MRR]
+- **Guard threshold:** [TODO: value, e.g. >= 0.90]
+- **Rule:** If the primary score improves but the guard metric crosses the threshold, **discard the change**. Log it as `guard_fail`.
+
+### Min-delta threshold
+- Only count a change as an improvement if the score increases by more than **[TODO: min-delta, e.g. 0.005]**.
+- Changes within the min-delta are noise, not signal. Discard them.
+- [TODO: If you ran the baseline stability check, note the observed variance here]
+
 ### Commit discipline
 - **Commit after every improvement** with a message: `autoresearch: [description] | score: X.XXX -> Y.YYY | [TODO: key metrics]`
 - **Revert failed experiments** cleanly: `git checkout -- [TODO: path/to/constrained/file]`
-- Keep a running log in `autoresearch_log[TODO: _N].md` — one line per experiment: iteration number, what you tried, score, kept/discarded
+- **Log every iteration** to `autoresearch.jsonl` — one JSON object per line (see format below)
+- **Update `autoresearch_dashboard.md`** after every iteration with current standings
 
 ### Iteration budget
 - Run **30 iterations** unless told otherwise
 - Each iteration should take under [TODO: N] minutes. If longer, something is wrong — stop and report.
-- After every 10 iterations, write a summary to `autoresearch_log[TODO: _N].md`
+- After every 10 iterations, write a progress summary to `autoresearch_dashboard.md`
+
+### State tracking
+
+Log every iteration to `autoresearch.jsonl`. Format:
+```json
+{"type": "result", "iteration": N, "commit": "sha", "score": X.XXXX, "delta": "+/-X.XXXX", "guard_score": X.XX, "guard_pass": true, "status": "keep|discard|crash|guard_fail", "description": "what you tried", "timestamp": "ISO8601"}
+```
+
+**If you lose context or are resuming:** Read `autoresearch.jsonl` and `autoresearch_dashboard.md` to recover state. The JSONL has every iteration's result. Continue from the last iteration number.
 
 ## Eval
 
@@ -94,7 +115,7 @@ Specifically, these are the tunable levers:
 
 ## When You're Done
 
-Write a final summary to `autoresearch_log[TODO: _N].md`:
+Write a final summary to `autoresearch_dashboard.md`:
 
 1. **Starting score** and **final score**
 2. **Top 3 changes** that had the biggest impact (with specific numbers)

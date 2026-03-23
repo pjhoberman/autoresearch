@@ -219,9 +219,14 @@ def run_eval(test_data_path: str = DEFAULT_TEST_DATA_PATH, k: int = 10, verbose:
     print("========================")
     print(f"\nSCORE: {score:.4f}")
 
+    # [TODO: Guard metric — uncomment and adjust]
+    # The agent checks this to decide keep vs guard_fail
+    # guard_value = mrr  # [TODO: Replace with your guard metric]
+    # print(f"GUARD: {guard_value:.4f}")
+
     # [TODO: Optional guardrail warning]
     # if mrr < 0.90:
-    #     print(f"  ⚠️  MRR dropped to {mrr:.4f} — investigate")
+    #     print(f"  WARNING: MRR dropped to {mrr:.4f} — below guard threshold")
 
 
 # ============================================================

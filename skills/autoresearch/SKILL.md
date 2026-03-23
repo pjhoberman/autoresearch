@@ -51,6 +51,12 @@ Once you have the file path:
    - Database queries that depend on the constrained file must run fresh
    - Target: <60s per iteration, ideally <10s
 
+4. **Identify guard metrics (optional but recommended).** A guard metric is a secondary metric that must NOT regress while the primary metric improves. Examples:
+   - Optimizing precision? Guard on MRR staying above a threshold.
+   - Optimizing speed? Guard on accuracy not dropping.
+   - Ask the user: "Is there anything that should NOT get worse while we optimize [primary metric]?"
+   - If yes, define the guard metric, its threshold, and what happens on violation (discard the change).
+
 ### Phase 2: Generate the experiment harness
 
 Generate four files, customized to the user's codebase. Use the templates in `templates/` as starting points, but adapt heavily — every autoresearch setup is different.
@@ -112,20 +118,24 @@ Short — the instructions.md does the heavy lifting. Include:
 - Read the constrained file to understand current state
 - Establish or confirm baseline
 - Start the loop, N iterations
-- Log everything to `autoresearch_log.md`
+- Log every iteration to `autoresearch.jsonl` (structured state) and update `autoresearch_dashboard.md` (human-readable)
 - Write final report when done
 
 ### Phase 3: Validate before launch
 
 Before handing off to Claude Code:
 
-1. **Run the eval once** and confirm it produces a SCORE
+1. **Run the eval 3 times** with no code changes. Confirm it produces a SCORE each time.
+   - If the 3 scores vary by more than 0.01, the eval is too noisy. Fix the noise source before proceeding.
+   - Set the min-delta threshold to 2-3x the observed variance.
+   - Record the baseline as the median of the 3 runs.
 2. **Verify the constrained file path** and revert command work
 3. **Check cache behavior** — run eval twice, confirm second run is faster
 4. **Review test data** with the user — bad labels will send the agent in wrong directions
 5. **Estimate iteration time** — multiply by 30 to set expectations for total runtime
+6. **Initialize `autoresearch.jsonl`** with the config header line (see State tracking section)
 
-6. **Stop and ask the user to review the generated files.** Present a summary of what was generated (instructions.md, eval script, test data, launch prompt) and ask the user to review them before proceeding. Do not kick off the autonomous loop or hand off the launch prompt until the user confirms they're happy with the setup. This is the last chance to catch bad metric definitions, missing frozen files, wrong strategy guidance, or test data issues before the agent burns 30 iterations on a flawed harness.
+7. **Stop and ask the user to review the generated files.** Present a summary of what was generated (instructions.md, eval script, test data, launch prompt, and the JSONL config) and ask the user to review them before proceeding. Do not kick off the autonomous loop or hand off the launch prompt until the user confirms they're happy with the setup. This is the last chance to catch bad metric definitions, missing frozen files, wrong strategy guidance, or test data issues before the agent burns 30 iterations on a flawed harness.
 
 ### Phase 4: Multi-round experiments
 
@@ -140,7 +150,7 @@ For each new round:
 - New instructions (`instructions_2.md`)
 - New eval script if caching strategy changes (`run_autoresearch_eval_2.py`)
 - Same test data (consistency across rounds)
-- New log (`autoresearch_log_2.md`)
+- New JSONL state file (`autoresearch_2.jsonl`) and dashboard (`autoresearch_dashboard_2.md`)
 
 ### Common pitfalls
 
@@ -153,6 +163,84 @@ For each new round:
 4. **Metric gaming.** The agent will optimize exactly what you measure. If your metric doesn't capture what you care about, the agent will find exploits. Composite metrics with guardrails (e.g., "optimize precision but warn if MRR drops below 0.9") help.
 
 5. **Diminishing returns.** Most gains come in the first 10-15 iterations. If the score plateaus for 5+ consecutive iterations, the ceiling is likely architectural, not parametric. The agent's final report should say this.
+
+## State tracking: JSONL + dashboard
+
+The experiment loop must track state in `autoresearch.jsonl` — one JSON object per line. This format is machine-parseable, survives context window compaction (the agent can re-read it to recover state), and makes the experiment auditable.
+
+### JSONL format
+
+Line 0 is the config header:
+```json
+{"type": "config", "constrained_file": "path/to/file.py", "eval_command": "...", "metric": "precision@12", "guard_metric": "mrr", "guard_threshold": 0.90, "baseline": 0.6930}
+```
+
+Subsequent lines are iteration results:
+```json
+{"type": "result", "iteration": 1, "commit": "abc1234", "score": 0.7050, "delta": "+0.0120", "guard_score": 0.95, "guard_pass": true, "status": "keep", "description": "Increased location base weight from 2x to 5x", "timestamp": "2025-03-15T02:14:33Z"}
+{"type": "result", "iteration": 2, "commit": "def5678", "score": 0.6850, "delta": "-0.0200", "guard_score": null, "guard_pass": null, "status": "discard", "description": "Added title matching as a ranking signal", "timestamp": "2025-03-15T02:16:01Z"}
+```
+
+Status values: `baseline`, `keep`, `discard`, `crash`, `guard_fail`
+
+`guard_fail` means the primary score improved but the guard metric crossed its threshold — the change is discarded despite the score gain.
+
+### Dashboard
+
+After every iteration, regenerate `autoresearch_dashboard.md` with:
+
+```markdown
+# Autoresearch Dashboard
+
+**Constrained file:** `path/to/file.py`
+**Baseline:** 0.6930 | **Current best:** 0.7200 | **Iterations:** 14/30
+**Guard:** MRR >= 0.90 (current: 0.95)
+
+| # | Score | Delta | Guard | Status | Description |
+|---|-------|-------|-------|--------|-------------|
+| 1 | 0.7050 | +0.012 | 0.95 PASS | keep | Increased location weight |
+| 2 | 0.6850 | -0.020 | — | discard | Title matching signal |
+...
+
+**Kept:** 3 | **Discarded:** 10 | **Crashed:** 1 | **Guard failures:** 0
+```
+
+This dashboard is what the user checks to monitor progress. The agent should also read it (along with the JSONL) when resuming after context compaction to understand what's been tried.
+
+### Context compaction resilience
+
+Long experiment loops may hit context window limits. The JSONL file is the agent's persistent memory — the launch prompt should instruct the agent:
+
+> If you lose context or are resuming, read `autoresearch.jsonl` and `autoresearch_dashboard.md` to recover your state. The JSONL has every iteration's result and the config header has all experiment parameters. Continue from the last iteration number.
+
+## Noise handling
+
+Noisy metrics produce false positives — the agent keeps "improvements" that are just variance. Address this during setup:
+
+### Baseline stability check
+
+Before starting the loop, run the eval **3 times** with no code changes. If the scores vary by more than 0.01 (or whatever the expected per-iteration improvement is), the eval is too noisy for autoresearch. Fix the noise source first:
+- Set LLM temperature to 0
+- Pin random seeds
+- Cache non-deterministic API calls
+- Remove timing-dependent assertions
+
+### Min-delta threshold
+
+Only count a change as an improvement if the score increases by more than a minimum delta. Set this based on the baseline stability check:
+- If 3 baseline runs give scores within 0.002, set min-delta to 0.005
+- Rule of thumb: min-delta should be 2-3x the observed baseline variance
+- Include the min-delta in `instructions.md` and the JSONL config header
+
+### Confirmation runs (for high-noise environments)
+
+If the eval has irreducible noise (e.g., it must call a live API), instruct the agent to run a **confirmation eval** on every "improvement":
+1. Score improves by > min-delta → tentative keep
+2. Run eval again without changes → confirmation score
+3. If confirmation score is still above previous best → confirmed keep
+4. Otherwise → discard (the improvement was noise)
+
+This doubles iteration time but prevents noise-driven drift.
 
 ## Templates
 
