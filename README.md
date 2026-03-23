@@ -44,9 +44,15 @@ The main skill. Once you know what to optimize:
 
 After installation, invoke with `/autoresearch:autoresearch path/to/file.py`.
 
+### Updating
+
+```
+/plugin marketplace update autoresearch-marketplace
+```
+
 ### Manual
 
-Copy the `skills/autoresearch/` directory into your project's `.claude/skills/` folder. This gives you `/autoresearch` directly.
+Copy the `skills/autoresearch/` and `skills/autoresearch-discover/` directories into your project's `.claude/skills/` folder. This gives you `/autoresearch` and `/autoresearch-discover` directly.
 
 ### Local development
 
