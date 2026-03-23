@@ -6,9 +6,15 @@ A Claude Code plugin for running Karpathy-style autonomous experiment loops on a
 
 Based on [Andrej Karpathy's autoresearch concept](https://karpathy.ai/), generalized beyond ML training to any code with a measurable outcome.
 
-## What it does
+## Skills
 
-When you invoke `/autoresearch path/to/file.py` in Claude Code, the skill:
+### `/autoresearch-discover [path/to/directory]`
+
+Don't know where to start? This skill scans your codebase for autoresearch candidates — files with tunable parameters, magic numbers, scoring logic, or prompt templates that could be optimized against a metric. It outputs a ranked list with suggested metrics and eval difficulty, so you can pick a target and run `/autoresearch` on it.
+
+### `/autoresearch path/to/file.py`
+
+The main skill. Once you know what to optimize:
 
 1. Reads the constrained file to identify tunable levers, then asks about your metric
 2. Generates a complete experiment harness: `instructions.md`, eval script, test data template, and launch prompt
@@ -17,10 +23,8 @@ When you invoke `/autoresearch path/to/file.py` in Claude Code, the skill:
 
 ## When to use it
 
-- Optimizing a scoring, ranking, or search function
-- Tuning weights, thresholds, or parameters
-- Improving a prompt template's downstream effect on a metric
-- Any code with a measurable quality metric where you want autonomous iteration
+- **Discover:** You have a codebase and want to know what's optimizable
+- **Autoresearch:** You have a specific file with tunable code and a measurable metric
 
 ## When NOT to use it
 
@@ -56,14 +60,17 @@ claude --plugin-dir /path/to/this/repo
 .claude-plugin/
   plugin.json                   # Plugin manifest
   marketplace.json              # Marketplace catalog for distribution
-skills/autoresearch/
-  SKILL.md                      # Skill definition — Claude Code reads this
-  templates/
-    instructions_template.md    # Template for the agent's instructions.md
-    eval_template.py            # Template for the eval script
-    launch_prompt.md            # Template for the Claude Code launch prompt
-  references/
-    lessons.md                  # Real-world findings from two production autoresearch runs
+skills/
+  autoresearch-discover/
+    SKILL.md                    # Codebase scanner — find optimization candidates
+  autoresearch/
+    SKILL.md                    # Main skill — generate experiment harness
+    templates/
+      instructions_template.md  # Template for the agent's instructions.md
+      eval_template.py          # Template for the eval script
+      launch_prompt.md          # Template for the Claude Code launch prompt
+    references/
+      lessons.md                # Real-world findings from production autoresearch runs
 ```
 
 ## Quick start
@@ -71,14 +78,16 @@ skills/autoresearch/
 In Claude Code, with your codebase open:
 
 ```
+# Step 1: Find optimization candidates
+/autoresearch-discover
+
+# Step 2: Pick a target and run autoresearch
 /autoresearch path/to/scoring.py
 ```
 
-(Or `/autoresearch:autoresearch path/to/scoring.py` if installed as a plugin.)
+If installed as a plugin, prefix with the plugin name: `/autoresearch:autoresearch-discover` and `/autoresearch:autoresearch path/to/scoring.py`.
 
-Pass the path to the **one file** the agent will be allowed to edit — the constrained file. The skill reads it immediately, identifies tunable levers, then asks about your metric and test data before generating the experiment harness.
-
-Once generated, paste the contents of `launch_prompt.md` into a new Claude Code session to start the autonomous loop.
+The discover skill scans for tunable code and suggests metrics. Pick a candidate, then pass the file path to `/autoresearch` — it reads the file, identifies tunable levers, asks about your metric, generates the experiment harness, and hands off to an autonomous loop.
 
 ## Templates
 
