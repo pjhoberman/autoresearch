@@ -27,7 +27,7 @@ Based on Karpathy's autoresearch pattern, generalized beyond ML training to any 
 
 ## Process
 
-### Phase 1: Analyze the constrained file
+### Phase 1: Analyze the constrained file and interview the user
 
 The user invokes this skill with the path to the constrained file: `/autoresearch path/to/file.py`
 
@@ -35,27 +35,57 @@ If the user invokes `/autoresearch` without a file path, ask them which file the
 
 Once you have the file path:
 
-1. **Read the constrained file immediately.** Identify:
+**1. Read the constrained file immediately.** Silently analyze:
    - What does the function/system do?
    - What are the tunable levers? (weights, thresholds, formulas, parameters, prompt text)
    - What should be frozen? (everything else — APIs, data sources, schema, other modules)
+   - Are there caching layers that could mask changes?
+   - What's the likely eval speed?
 
-2. **Identify the metric.** Ask the user:
-   - What does "better" mean? (accuracy, precision, recall, speed, score, pass rate)
-   - Is there existing test data, or do we need to create it?
-   - Can the eval run without external API calls? If not, what can be cached?
+**2. Interview the user.** Ask questions **one at a time** using `AskUserQuestion` when available. Do NOT dump all questions in a single message. Wait for each answer before asking the next question.
 
-3. **Check for eval speed.** The loop needs fast iterations:
-   - If eval takes >30s, identify what can be cached between iterations
-   - API calls that don't change when the constrained file changes should be cached
-   - Database queries that depend on the constrained file must run fresh
-   - Target: <60s per iteration, ideally <10s
+Present your analysis of the file first (what you found, what's tunable), then walk through these questions in order. Propose a sensible default for each based on your analysis — the user should be able to accept your suggestion or override it.
 
-4. **Identify guard metrics (optional but recommended).** A guard metric is a secondary metric that must NOT regress while the primary metric improves. Examples:
-   - Optimizing precision? Guard on MRR staying above a threshold.
-   - Optimizing speed? Guard on accuracy not dropping.
-   - Ask the user: "Is there anything that should NOT get worse while we optimize [primary metric]?"
-   - If yes, define the guard metric, its threshold, and what happens on violation (discard the change).
+**Question 1: Metric**
+> What does "better" mean for this code?
+>
+> Options (based on what the code does):
+> - [Suggested metric based on analysis, e.g., "Precision@10 of search results"]
+> - [Alternative metric if applicable]
+> - [Custom — let me describe it]
+
+**Question 2: Test data**
+> How should we evaluate changes?
+>
+> - I have existing test data / ground truth I can point you to
+> - I have logs or production data we can extract test cases from
+> - We need to create test data from scratch
+> - There's an existing test suite we can adapt
+
+**Question 3: Guard metric**
+> Is there anything that should NOT get worse while we optimize [primary metric]?
+>
+> - [Suggested guard based on analysis, e.g., "MRR stays above 0.90"]
+> - [Alternative guard]
+> - No guard needed
+> - Custom — let me describe it
+
+**Question 4: Scope constraints**
+> I found these tunable levers: [list]. Should the agent be allowed to change all of them, or should some be frozen?
+>
+> - All of them — let the agent explore freely
+> - Only these: [subset]
+> - Let me specify what's off-limits
+
+**Question 5: Budget**
+> Based on eval speed (~Xs per iteration), I'd suggest N iterations (~Y minutes total). Sound right?
+>
+> - Yes, go with that
+> - Fewer — I want quick results
+> - More — I want thorough exploration
+> - Custom number
+
+After all questions are answered, summarize the experiment configuration back to the user before proceeding to Phase 2.
 
 ### Phase 2: Generate the experiment harness
 
