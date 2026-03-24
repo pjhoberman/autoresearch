@@ -148,6 +148,97 @@ Read this before designing your first experiment — it will save you an entire 
 
 **Noise-aware.** Baseline stability checks and min-delta thresholds prevent the agent from chasing variance instead of signal.
 
+## Examples
+
+### Discovery output
+
+Running `/autoresearch-discover` on a Django search backend might return something like this:
+
+```
+Autoresearch Discovery Report — 6 candidates found
+Ranked by: eval feasibility × impact × isolation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RANK 1 — search/geocoding.py                          ★★★ START HERE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Tunable parameters: 8
+  - NEARBY_RADIUS_KM (currently 25)
+  - CITY_POPULATION_TIERS = [10_000, 50_000, 250_000, 1_000_000]
+  - FALLBACK_RADIUS_MULTIPLIER (currently 2.5)
+  + 2 more distance/tier thresholds
+
+Suggested metric: address match accuracy on labeled dataset
+Eval difficulty: LOW — validation tools already exist, ~200 labeled examples in fixtures/
+Notes: Best eval infrastructure already in place. Self-contained with no shared state.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RANK 2 — search/scoring.py                            ★★ HIGH BUSINESS IMPACT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Tunable parameters: 5
+  - QUALITY_WEIGHTS = {completeness: 0.4, popularity: 0.3, recency: 0.2, verified: 0.1}
+  - MIN_SCORE_TO_INDEX (currently 0.45)
+
+Suggested metric: MRR@10 or NDCG@10 on search query log
+Eval difficulty: MEDIUM — need to build eval harness, but labeled data exists
+Notes: Controls what surfaces to users. Most business-critical. Interacts with RANK 3.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RANK 3 — search/promotion.py                          ★★ HIGH BUSINESS IMPACT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Tunable parameters: 3
+  - DISTANCE_DECAY_COEFFICIENT (currently 0.8)
+  - MIN_REVIEWS_TO_PROMOTE (currently 5)
+  - MIN_UNIQUE_USERS_TO_PROMOTE (currently 3)
+
+Suggested metric: precision@5 on promoted-result audit set
+Eval difficulty: MEDIUM
+Notes: Gate for surfacing results to wider audiences. Optimize after RANK 2 — they interact.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RANK 4 — matching/similarity.py                       ★ MODERATE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Tunable parameters: 4
+  - EMBEDDING_SIMILARITY_THRESHOLD (currently 0.82)
+  - EXACT_MATCH_BOOST (currently 1.5)
+  - FUZZY_MATCH_MIN_RATIO (currently 0.7)
+  - DEDUP_OVERLAP_THRESHOLD (currently 0.9)
+
+Suggested metric: duplicate detection F1 on labeled pairs
+Eval difficulty: MEDIUM — labeled pairs dataset needs curation (~2h work)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RANK 5 — display/snippet.py                           ★ MODERATE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Tunable parameters: 4
+  - MAX_SNIPPET_LENGTH (currently 160)
+  - CONTEXT_WINDOW_CHARS (currently 80)
+  - HIGHLIGHT_MAX_TERMS (currently 3)
+  - TRUNCATE_AT_SENTENCE_BOUNDARY (currently True)
+
+Suggested metric: human preference score or click-through rate proxy
+Eval difficulty: HIGH — no ground truth; needs LLM-as-judge or user study
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RANK 6 — taxonomy/tag_linker.py                       ★ LOW PRIORITY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Tunable parameters: 3
+  - TAG_CONFIDENCE_THRESHOLD (currently 0.6)
+  - MAX_TAGS_PER_ITEM (currently 8)
+  - PARENT_TAG_BOOST (currently 1.2)
+
+Suggested metric: taxonomy coverage on labeled item set
+Eval difficulty: HIGH — limited labeled data; tag ontology changes frequently
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RECOMMENDATION: Start with search/geocoding.py (RANK 1).
+It has the best eval infrastructure already in place. Once you have a
+working eval loop, RANK 2 + 3 are higher impact but require harness setup.
+Avoid RANK 5 and 6 until you have a reliable automated metric.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+From here, run `/autoresearch search/geocoding.py` — it reads the file, confirms the metric with you, generates the eval harness, and hands off to the autonomous loop.
+
 ## Prior art
 
 - [karpathy/autoresearch](https://github.com/karpathy/autoresearch) — The original. 630-line script, single GPU, ML training optimization. 42K+ stars.
